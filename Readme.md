@@ -1,11 +1,11 @@
 # NeRF data preparation from real-world images 
 
 This repo is used to transform real-world images to the form that needed by our paper [Cicero: Real-Time Neural Rendering by Radiance Warping and Memory Optimizations](), it includes five steps:
-- use [Metashape](https://www.agisoft.com/) to reconstruct mesh and camera poses from real world data
-- post-processing the mesh by cropping out the region of interests
-- use the cropped mesh to generate foreground mask and depth maps of images
-- transform the metashape data to blender dataformat that is compatible with three methods used in our paper
-- tune the parameters for real-world dataset in three methods and get the final result.
+- Use [Metashape](https://www.agisoft.com/) to reconstruct mesh and camera poses from real world data
+- Post-processing the mesh by cropping out the background
+- Use the cropped mesh to generate foreground mask and depth maps of images
+- Transform the metashape data to blender dataformat that is compatible with three methods used in our paper
+- Tune the parameters for real-world dataset in three methods and get the final result.
 
 ## 1. Use metashape to generate mesh and camera poses from real world data.
 
@@ -22,8 +22,8 @@ This repo is used to transform real-world images to the form that needed by our 
 └── meta.xml
 ```
 
-## 2. Post-processing the mesh by cropping out the region of interests
- Due to sparse sampling, metashape can't reconstruct background mesh well, it well cause holes or inaccuracy in depth maps, so here we crop out the foreground mesh that we care. During the experiences of Cicero, we only render pixels, computing PSNR and sparsity in the foreground. This step has two stages, first you need to decide the foreground bounding box, then you need to process the whole mesh to filter out faces outside of the bounding box.
+## 2. Post-processing the mesh by cropping out the background
+ Due to sparse sampling, metashape can't reconstruct background mesh well, it well cause holes or inaccuracy in depth maps, so here we crop out the background mesh that we don't care. During the experiments of Cicero, we only render pixels, computing PSNR and sparsity in the foreground. This step has two stages, first you need to decide the foreground bounding box, then you need to process the whole mesh to filter out faces outside of the bounding box.
 
  ### Decide the foreground bounding box
 
