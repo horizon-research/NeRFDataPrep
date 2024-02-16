@@ -32,7 +32,7 @@ This repo is used to transform real-world images to the form that needed by our 
  ```bash
  cd crop_foreground
  python3 bounding_box_drawer.py --input_mesh <path_to_mesh.obj> --bbox <path_to_bbox.txt>
- # ex: python3 bounding_box_drawer.py --input_mesh ../garden/mesh.obj --bbox ./garden_bbox.txt
+ # eg. python3 bounding_box_drawer.py --input_mesh ../garden/mesh.obj --bbox ./garden_bbox.txt
  # see crop_foreground/garden_bbox.txt to know how to write bbox.txt
  # cx, cy, cz are centers
  # rx, ry, rz are rotation in degrees
@@ -49,7 +49,7 @@ This repo is used to transform real-world images to the form that needed by our 
 ```bash
  cd crop_foreground
 python3 background_mesh_filter.py --input_mesh <path_to_origin_mesh.obj> --output_path <path_to_save_cut_mesh.obj> --bbox <path_to_bbox.txt> --num_workers 16
-# ex: python3 background_mesh_filter.py --input_mesh ../garden/mesh.obj --output_path ../garden/mesh_cut.obj --bbox garden_bbox.txt --num_workers 16
+# eg. python3 background_mesh_filter.py --input_mesh ../garden/mesh.obj --output_path ../garden/mesh_cut.obj --bbox garden_bbox.txt --num_workers 16
 ```
 After the filtering, pyrender viewer will show the bounding box and cropped result like below:
 <p float="left">
@@ -66,7 +66,7 @@ run below code, notice that we change cx, cy, and the pose to align with the ble
 ```bash
 cd generate_depths_and_mask
 python3 parse_cameras_meta.py --meta_file <path_to_meta.xml> --output_path <path_to_save_parsed_meta.pkl>
-# ex: python3 parse_cameras_meta.py --meta_file ../garden/meta.xml --output_path ../garden/parsed_meta.pkl
+# eg. python3 parse_cameras_meta.py --meta_file ../garden/meta.xml --output_path ../garden/parsed_meta.pkl
 ```
 
 ## Get depth and foreground mask from mesh 
@@ -75,7 +75,7 @@ The depth map is fp32 and will be named according to the corresponding image, an
 ```bash 
 cd generate_depths_and_mask
 python3 get_depth_and_mesh.py --cut_mesh <path_to_cut_mesh.obj> --parsed_meta ../garden/<path_to_parsed_meta.pkl> --downsampled_factor 4 --output_folder <path_to_save_output.npy>
-# ex: python3 get_depth_and_mesh.py --cut_mesh ../garden/mesh_cut.obj --parsed_meta ../garden/parsed_meta.pkl --downsampled_factor 4 --output_folder ../garden/depths_masks_4
+# eg. python3 get_depth_and_mesh.py --cut_mesh ../garden/mesh_cut.obj --parsed_meta ../garden/parsed_meta.pkl --downsampled_factor 4 --output_folder ../garden/depths_masks_4
 ```
 
 ## Validate the gernerated depth and mask
@@ -84,7 +84,7 @@ run:
 ```bash
 cd generate_depths_and_mask
 python3 validate.py --depth_masks_folder <path_to_depths_and_masks> --rgb_folder <path_to_rgb_images> --output_folder <path_to_save_output_overlapped_images>
-# ex:  python3 validate.py --depth_masks_folder ../garden/depths_masks_4/ --rgb_folder ../garden/images_4/ --output_folder ../garden/depth_mask_validation
+# eg. python3 validate.py --depth_masks_folder ../garden/depths_masks_4/ --rgb_folder ../garden/images_4/ --output_folder ../garden/depth_mask_validation
 ```
 output will look like: (left is depth validation image, right is mask validation image.)
 <p float="left">
@@ -94,3 +94,30 @@ output will look like: (left is depth validation image, right is mask validation
 
 
 # 4. transform the metashape data to blender dataformat that is compatible with three methods used in our paper
+run:
+```bash
+cd gnerate_blender_format
+bash ./gnerate_blender_format.sh <aabb_scale> <path_to_parsed_meta.pkl> <json_output_folder> <img_folder>
+# eg. bash ./gnerate_blender_format.sh 16 ../garden/parsed_meta.pkl ../garden/ ../garden/images_4/
+```
+You shoud see "transforms_xxx.json" under the output_folder now.
+
+
+# 5. tune the parameters for real-world dataset in three methods and get the final result.
+
+The three methods we use in the paper include:
+- [Instant NGP](https://github.com/NVlabs/instant-ngp)
+- [DirectVoxGO](https://github.com/sunset1995/DirectVoxGO)
+- [TensoRF](https://github.com/apchenstu/TensoRF)
+
+Since we are using our own dataset constructed by metashape, we need to do two things:
+- Integrate our blender format data into three methods.
+- tune parameters by ourselve, mainly the bounding box of nerf algorithm.
+
+Here I will introduce the integration method and tuning results.
+
+## Instant NGP
+
+## DirectVoxGO
+
+## TensoRF
