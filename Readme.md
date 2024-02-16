@@ -40,7 +40,7 @@ This repo is used to transform real-world images to the form that needed by our 
  ```
  here is an example of adjusted bbox in garden scene:
 <p float="left">
-  <img src="bbox.png" alt="Input Image" style="width: 40%; margin-right: 20px;" />
+  <img src="imgs/bbox.png" alt="Input Image" style="width: 40%; margin-right: 20px;" />
 </p>
 
  ### Filter out the back ground mesh outside the bounding box
@@ -53,7 +53,7 @@ python3 background_mesh_filter.py --input_mesh <path_to_origin_mesh.obj> --outpu
 ```
 After the filtering, pyrender viewer will show the bounding box and cropped result like below:
 <p float="left">
-  <img src="cut_mesh.png" alt="Input Image" style="width: 40%; margin-right: 20px;" />
+  <img src="imgs/cut_mesh.png" alt="Input Image" style="width: 40%; margin-right: 20px;" />
 </p>
 
 
@@ -75,5 +75,22 @@ The depth map is fp32 and will be named according to the corresponding image, an
 ```bash 
 cd generate_depths_and_mask
 python3 get_depth_and_mesh.py --cut_mesh <path_to_cut_mesh.obj> --parsed_meta ../garden/<path_to_parsed_meta.pkl> --downsampled_factor 4 --output_folder <path_to_save_output.npy>
-# ex: python3 get_depth_and_mesh.py --cut_mesh ../garden/mesh_cut.obj --parsed_meta ../garden/parsed_meta.pkl --downsampled_factor 4 --output_folder ../garden/depths_4
+# ex: python3 get_depth_and_mesh.py --cut_mesh ../garden/mesh_cut.obj --parsed_meta ../garden/parsed_meta.pkl --downsampled_factor 4 --output_folder ../garden/depths_masks_4
 ```
+
+## Validate the gernerated depth and mask
+To validate the depth and mask, we can overlap them with RGB image.
+run:
+```bash
+cd generate_depths_and_mask
+python3 validate.py --depth_masks_folder <path_to_depths_and_masks> --rgb_folder <path_to_rgb_images> --output_folder <path_to_save_output_overlapped_images>
+# ex:  python3 validate.py --depth_masks_folder ../garden/depths_masks_4/ --rgb_folder ../garden/images_4/ --output_folder ../garden/depth_mask_validation
+```
+output will look like: (left is depth validation image, right is mask validation image.)
+<p float="left">
+  <img src="imgs/depth_val.png" alt="Input Image" style="width: 40%; margin-right: 20px;" />
+  <img src="imgs/mask_val.png" alt="Input Image" style="width: 40%; margin-right: 20px;" />
+</p>
+
+
+# 4. transform the metashape data to blender dataformat that is compatible with three methods used in our paper
