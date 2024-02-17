@@ -34,6 +34,7 @@ def parse_args():
 	parser.add_argument("--json_output_folder", default="", help="json_output_folder")
 	parser.add_argument("--img_folder", default="", help="the path to images")
 	parser.add_argument('--val', action='store_true', help='Generate val json')
+	parser.add_argument('--downscale_factor', type=float, default=1.0, help='Downscale factor for the images')
 	args = parser.parse_args()
 	return args
 
@@ -42,6 +43,9 @@ def variance_of_laplacian(image):
 
 def sharpness(imagePath):
 	image = cv2.imread(imagePath)
+	# convert rgba to rgb
+	if image.shape[2] == 4:
+		image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
 	gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 	fm = variance_of_laplacian(gray)
 	return fm
@@ -70,12 +74,12 @@ if __name__ == "__main__":
 	with open(args.parsed_meta, "rb") as f:
 		in_ex_param = pickle.load(f)
 
-	fl_x = in_ex_param["intrinsics"]["f"]
-	fl_y = in_ex_param["intrinsics"]["f"]
-	cx = in_ex_param["intrinsics"]["cx"]
-	cy = in_ex_param["intrinsics"]["cy"]
-	img_width = int(in_ex_param["intrinsics"]["width"])
-	img_height = int(in_ex_param["intrinsics"]["height"])
+	fl_x = in_ex_param["intrinsics"]["f"] / args.downscale_factor
+	fl_y = in_ex_param["intrinsics"]["f"] / args.downscale_factor
+	cx = in_ex_param["intrinsics"]["cx"] / args.downscale_factor
+	cy = in_ex_param["intrinsics"]["cy"] / args.downscale_factor
+	img_width = round(in_ex_param["intrinsics"]["width"] / args.downscale_factor)
+	img_height = round(in_ex_param["intrinsics"]["height"] / args.downscale_factor)
 	name_poses = in_ex_param["name_poses"]
 
 	camera["camera_angle_x"] = math.atan(img_width / ( fl_x * 2)) * 2
@@ -141,8 +145,8 @@ if __name__ == "__main__":
 		else:
 			if idx % 8 == 0:
 				continue
-		rel_path = str(f"./{image_rel}/"+ img_name + ".JPG")
-		path = str(args.img_folder+ img_name + ".JPG")
+		rel_path = str(f"./{image_rel}/"+ img_name + ".JPG.png")
+		path = str(args.img_folder+ img_name + ".JPG.png")
 		b = sharpness(path)
 		print(path, "sharpness=",b)
 
