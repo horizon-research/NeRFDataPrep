@@ -169,107 +169,23 @@ Since we are using our own dataset constructed by metashape, we need to do two t
 - Integrate our blender format data into three methods.
 - tune parameters by ourselve, mainly the bounding box of nerf algorithm.
 
-Here I will introduce the integration method and tuning results.
-
-## Instant NGP
-### clone and set up their code. (see their repo)
-```bash
-git clone https://github.com/NVlabs/instant-ngp
-git submodule update --init --recursive
-xhost +
-cmake ./ -B ./build -DCMAKE_BUILD_TYPE=RelWithDebInfo
-cmake --build build --config RelWithDebInfo -j 32
-```
-
-### For Instant NGP, setting is as follow:
-- our data is directly usable, we only need to tune the aabb scale metioned in step4, I set it to be 16 in step4.
-
-- need to change line 284 to fix problem:
-```python
-284. # cam_matrix = f.get("transform_matrix", f["transform_matrix_start"])
-285. cam_matrix = f["transform_matrix"]
-```
-### Below is the training / Evaluation code we use
-
-
-Note: We can increase network capacity to improve PSNR  but in order to stay consistent with our hardware evaluation for sythetic NeRF, we use default setting.
-
-```bash
-# training
-cd scripts/
-python3 run.py ../configs/nerf/base.json --scene ../../../garden/transforms_train.json --save_snapshot ../../../garden/ingp_256_35000_base.ingp --marching_cubes_res 256 --n_steps 35000
-
-# testing and save snapshots of val set
-python3 run.py --scene ../../../garden/transforms_train.json --load_snapshot  ../../../garden/ingp_256_35000_base.ingp --test_transforms ../../../garden/transforms_val.json --screenshot_transforms ../../../garden/transforms_val.json --screenshot_dir ../../../garden/ingp_256_35000_base_snapshots --marching_cubes_res 256
-
-# testing and save snapshots of training set
-python3 run.py --scene ../../../garden/transforms_train.json --load_snapshot  ../../../garden/ingp_256_35000_base.ingp --test_transforms ../../../garden/transforms_train.json --screenshot_transforms ../../../garden/transforms_train.json --screenshot_dir ../../../garden/ingp_256_35000_base_snapshots --marching_cubes_res 256
-```
-
-
-
-## DirectVoxGO
-
-## Clone and set up their code. (see their repo)
-```bash
-git clone https://github.com/sunset1995/DirectVoxGO
-```
-
-For DorectVoxGo, they have special``` dcvgo.DirectContractedVoxGO ``` for unbounded scene, but in order to stay consistent with our hardware evaluation for sythetic NeRF, we use same setting as sythetic NeRF.You can enable the ``` dcvgo.DirectContractedVoxGO ```  by setting ```unbounded_inward=True```, check their config file for unbounded 360.
-
-Also before running with our configuration, you need to add below code to  ```DirectVoxGO/lib/load_data.py``` line 134
-since the ```near, far``` in our scene should be larger than sythetic-NeRf
-
-```python
-    elif args.dataset_type == 'metashape':
-        images, poses, render_poses, hwf, i_split = load_blender_data(args.datadir, args.half_res, args.testskip)
-        print('Loaded blender', images.shape, render_poses.shape, hwf, args.datadir)
-        i_train, i_val, i_test = i_split
-
-        near, far = 0.1, 256
-
-        if images.shape[-1] == 4:
-            if args.white_bkgd:
-                images = images[...,:3]*images[...,-1:] + (1.-images[...,-1:])
-            else:
-                images = images[...,:3]*images[...,-1:]  
-```
-
-Also, we need to change the line 57 in load_blender to meet our image name:
-```python
-            # fname = os.path.join(basedir, frame['file_path'] + '.png')
-            fname = os.path.join(basedir, frame['file_path'])
-```
-
-Put our ```networks_config/DirectVoxGO/metashape.py``` under ```DirectVoxGO/configs```, then you can run the training code:
-
-```bash
-python3 run.py --config configs/metashape.py --render_test
-```
-garden_0_2_long is fine with 30.43 psnr, use default for all?
-We can increase network capacity to improve PSNR  but in order to stay consistent with our hardware evaluation for sythetic NeRF, we use default setting.
-
-## TensoRF
-
-python3 train.py --config configs/metashape.txt
-
-line 71:
-
-            # image_path = os.path.join(self.root_dir, f"{frame['file_path']}.png")
-            image_path = os.path.join(self.root_dir, f"{frame['file_path']}")
-
-/home/lwk/ur_research/mesh_proj/NeRFDataPrep/three_methods/TensoRF/dataLoader/__init__.py
-/home/lwk/ur_research/mesh_proj/NeRFDataPrep/three_methods/TensoRF/dataLoader/metashape.py
-/home/lwk/ur_research/mesh_proj/NeRFDataPrep/three_methods/TensoRF/configs/metashape.txt
-/home/lwk/ur_research/mesh_proj/NeRFDataPrep/three_methods/TensoRF/opt.py
-
- 31.70 (setting1)
- 
+Here I will only show the results.
+For details about how to integrate and tune the parameters, see Readmes in [3models](./3models) introduce the integration method and tuned parameters.
 ## Results 
+### Split 1: Training set for training, validation set for evaluation.
+- PSNR 
 
-- PSNR (val, train)
+    | split \ dataset | 360-Garden | 360-bonsai |  Tanks&Temple-Trunk | Tanks&Temple-Ignatius |
+    |----------|----------|----------|----------|----------|
+    | Instant NGP | 32.54 | -- | -- | -- |
+    | DirectVoxGo   | 30.20 | -- | -- | -- |
+    | Tensor RF   | 31.98 | -- | -- | -- |
 
-    | split \ dataset | 360-Garden | Tanks&Temple-Ignatius |
-    |----------|----------|----------|
-    | Instant NGP | (21.97, 23.88) | Row1 Col3 |
-    | DirectVoxGo   | 23.88 | Row2 Col3 |
+
+### Split 2: Use train+val set for training and evaluation.
+- PSNR 
+
+    | split \ dataset | 360-Garden | 360-bonsai |  Tanks&Temple-Trunk | Tanks&Temple-Ignatius |
+    |----------|----------|----------|----------|----------|
+    | Instant NGP | -- | -- | -- | -- |
+    | DirectVoxGo   | -- | -- | -- | -- |
