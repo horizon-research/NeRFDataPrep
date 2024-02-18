@@ -6,21 +6,6 @@ import xml.etree.ElementTree as ET
 from tqdm import tqdm  # Import tqdm
 import pickle
 
-rotation_matrix_180_y = np.array([
-    [-1.0, 0.0, 0.0, 0.0],
-    [0.0, 1.0, 0.0, 0.0],
-    [0.0, 0.0, -1.0, 0.0],
-    [0.0, 0.0, 0.0, 1.0]
-])
-
-rotation_matrix_180_z = np.array([
-    [-1.0, 0.0, 0.0, 0.0],
-    [0.0, -1.0, 0.0, 0.0],
-    [0.0, 0.0, 1.0, 0.0],
-    [0.0, 0.0, 0.0, 1.0]
-])
-
-
 
 def string_to_transform_matrix(transform_str):
     """
@@ -96,12 +81,7 @@ def parse_meta(meta_xml_fp, output_path):
     intrinsics["cx"] = intrinsics["cx"] + intrinsics["width"] / 2
     intrinsics["cy"] = intrinsics["cy"] + intrinsics["height"] / 2
     name_poses = parse_name_pose(tree)
-    fixation_matrix = rotation_matrix_180_y @ rotation_matrix_180_z
-    for name_pose in name_poses:
-        pose = name_pose["transform"]
-        pose = pose @ fixation_matrix
-        name_pose["transform"] = pose
-    
+
     save_result = dict()
     # use pickle to save intrinsic and extrinsic parameters
     save_result["intrinsics"] = intrinsics

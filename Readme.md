@@ -9,12 +9,12 @@ This repo is used to transform real-world images to the form that needed by our 
 
 ## 1. Use metashape to generate mesh and camera poses from real world data.
 
-### Download the software and set it up. There is a one month free trial.
-### Reconstruct the camera poses mesh following their [Manual](https://www.agisoft.com/pdf/metashape_2_1_en.pdf)
+### (1.1) Download the software and set it up. There is a one month free trial.
+### (1.2) Reconstruct the camera poses mesh following their [Manual](https://www.agisoft.com/pdf/metashape_2_1_en.pdf)
 - This step mainly include two steps: (1) align photos (2) Create model (mesh)
     - align photos: we use default setting
     - Create model (mesh): we change quality to high 
-- after this step, export the model (mesh in .obj format) and cameras parameters (include extrinsicts and intrinsicts) to a folder. The folder should looks like below. mesh.obj and mesh.mtl is from mesh, and meta.xml describe the camera extrinsicts and intrinsicts.
+- after this step, export the model (mesh in .obj format) and cameras parameters (include extrinsicts and intrinsicts) to a folder. The folder should looks like below. mesh.obj and mesh.mtl are from mesh, and meta.xml describe the camera extrinsicts and intrinsicts.
 ```
 .
 ├── mesh.mtl
@@ -23,12 +23,17 @@ This repo is used to transform real-world images to the form that needed by our 
 ```
 
 ## 2. Post-processing the mesh by cropping out the background
- Due to sparse sampling, metashape can't reconstruct background mesh well, it well cause holes or inaccuracy in depth maps, so here we crop out the background mesh that we don't care. During the experiments of Cicero, we only render pixels, computing PSNR and sparsity in the foreground. This step has two stages, first you need to decide the foreground bounding box, then you need to process the whole mesh to filter out faces outside of the bounding box.
+ Due to sparse sampling, metashape can't reconstruct background mesh well, it well cause holes or inaccuracy in depth maps, so here we delete the background mesh that we don't care. During the experiments, we only computing sparsity in the foreground. 
+ This step has two stages, first you need to decide the foreground bounding box, then you need to process the whole mesh to filter out faces outside of the bounding box.
 
- ### Decide the foreground bounding box
+ ### (2.1) Decide the foreground bounding box
 
  use following script to visualize bounding box and mesh, adjust the bounding box to 
- make it contain the forground, use the coordinate drawn in the viewer to help you adjust it.
+ make it contain only the forground, use the coordinate drawn in the viewer to help you adjust it.
+
+ A good bounding box should: 
+ - contain only the foreground.
+ - contain the foreground using size as small as possible.
  ```bash
  cd crop_foreground
  python3 bounding_box_drawer.py --input_mesh <path_to_mesh.obj> --bbox <path_to_bbox.txt>
@@ -43,7 +48,7 @@ This repo is used to transform real-world images to the form that needed by our 
   <img src="imgs/bbox.png" alt="Input Image" style="width: 40%; margin-right: 20px;" />
 </p>
 
- ### Filter out the back ground mesh outside the bounding box
+ ### (2.2) Filter out the back ground mesh outside the bounding box
  After setting the foreground region, we need to filter out the background meshes, and during our evaluation, those pixels correspond to no mesh (background pixels) won't be counted.
  run below code to filter out the background mesh:
 ```bash
@@ -57,28 +62,49 @@ After the filtering, pyrender viewer will show the bounding box and cropped resu
 </p>
 
 
-# 3. Use the cropped mesh to generate foreground mask and depth maps of images
-
-This is for evaluation in our paper. This includes two steps: First, parse the camera data from metashape. Second, render depth and foreground mask of corresonding camera perspectives using pyrender.
-
-## Parse the camera data from metashape
-run below code, notice that we change cx, cy, and the pose to align with the blender dataset
+# 3. Normalize Camera poses and Mesh and Fix the Camera poses
+Since some methods may expect foreground to be at origin and have small size, here we need to normalize the camera poses and mesh using the bounding box information in case some of them have no auto-detection and normalizion.
+## (3.1) Parse the metashape data
+run:
 ```bash
-cd generate_depths_and_mask
+cd norm_and_fix_data
 python3 parse_cameras_meta.py --meta_file <path_to_meta.xml> --output_path <path_to_save_parsed_meta.pkl>
 # eg. python3 parse_cameras_meta.py --meta_file ../garden/meta.xml --output_path ../garden/parsed_meta.pkl
 ```
+## (3.2) Normalize Mesh and Camera Poses using BBox information
 
-## Get depth and foreground mask from mesh 
-run below code. Since we are testing 4x downsampled dataset, we set downsampled_factor to 4.
+In this stage we normalize the foreground to 1x1x1 bounding box around origin using the foreground bounding box information.
+run:
+```bash
+python3 norm_poses_mesh.py --parsed_meta ../garden/parsed_meta.pkl --input_mesh ../garden/mesh_cut.obj --output_mesh_path ../garden/norm_mesh.obj --output_meta_path ../garden/norm_meta.pkl
+```
+Then you will see a visualization windows shows the normalized results like below, make sure postive z-axis (blue) is pointed to the target and mesh is alighed with the axis in the same way as it aligh with the foreground bounding box. 
+<p float="left">
+  <img src="imgs/norm.png" alt="Input Image" style="width: 40%; margin-right: 20px;" />
+</p>
+
+## (3.3)  Fix the camera pose by rotate it
+Since camera in pyrender and blender format data all target the object using negative z-axis which is different from metashape, we need to rotate it here.
+run:
+```bash
+python3 fix_poses.py --in_meta ../garden/norm_meta.pkl  --output_path ../garden/fix_norm_meta.pkl
+```
+
+
+
+
+# 4. Use the cropped mesh to generate foreground mask and depth maps of images from mesh
+
+## (4.1) Get depth and foreground mask from mesh 
+Run below code. Since we are testing 4x downsampled dataset, we set downsampled_factor to 4.
 The depth map is fp32 and will be named according to the corresponding image, and the mask is computed using depth>0, saved in np.uint8 format, also named according to the corresponding image.
 ```bash 
 cd generate_depths_and_mask
 python3 get_depth_and_mesh.py --cut_mesh <path_to_cut_mesh.obj> --parsed_meta ../garden/<path_to_parsed_meta.pkl> --downsampled_factor 4 --output_folder <path_to_save_output.npy>
-# eg. python3 get_depth_and_mesh.py --cut_mesh ../garden/mesh_cut.obj --parsed_meta ../garden/parsed_meta.pkl --downsampled_factor 4 --output_folder ../garden/depths_masks_4
+# eg. python3 get_depth_and_mesh.py --cut_mesh ../garden/norm_mesh.obj --parsed_meta ../garden/fix_norm_meta.pkl --downsampled_factor 4 --output_folder ../garden/depths_masks_4
 ```
 
-## Validate the gernerated depth and mask
+## (4.2) Validate the gernerated depth and mask
 To validate the depth and mask, we can overlap them with RGB image.
 run:
 ```bash
@@ -93,13 +119,25 @@ output will look like: (left is depth validation image, right is mask validation
 </p>
 
 
-# 4. transform the metashape data to blender dataformat that is compatible with three methods used in our paper
-run below code. aabb_scale=16 works fine in my case. And I use downscale_factor=4 which will be applied to camera intrinsicts.
+
+
+# 5. transform the metashape data to blender dataformat that is compatible with three methods used in our paper
+
+## (5.1) Generate RGBA format masked image 
+We use A=0 to tell the background pixels, same as blender dataset
+run:
+```bash
+python3 generate_mask_image_set.py --depth_masks_folder ../garden/depths_masks_4/ --rgb_folder ../garden/images_4/ --output_folder ../garden/images_4_mask
+```
+
+
+## (5.2)
+run below code.Since I have normalize the data, aabb_scale=1 works fine in my case. And I use downscale_factor=4 which will be applied to camera intrinsicts.
 ```bash
 cd gnerate_blender_format
 bash ./gnerate_blender_format.sh <aabb_scale> <path_to_parsed_meta.pkl> <json_output_folder> <img_folder> <downscale_factor>
 # modified from colmap2nerf in https://github.com/NVlabs/instant-ngp
-# eg. bash ./gnerate_blender_format.sh 16 ../garden/parsed_meta.pkl ../garden/ ../garden/images_4/ 4.0
+# eg. bash ./gnerate_blender_format.sh 1 ../garden/fix_norm_meta.pkl ../garden/ ../garden/images_4_mask/ 4.0
 ```
 You shoud see "transforms_xxx.json" under the output_folder now.
 
@@ -208,17 +246,25 @@ Put our ```networks_config/DirectVoxGO/metashape.py``` under ```DirectVoxGO/conf
 ```bash
 python3 run.py --config configs/metashape.py --render_test
 ```
-
+garden_0_2_long is fine with 30.43 psnr, use default for all?
 We can increase network capacity to improve PSNR  but in order to stay consistent with our hardware evaluation for sythetic NeRF, we use default setting.
-### Garden
-#### Val PSNR= 21.14
-#### Train PSNR=
 
 ## TensoRF
 
+python3 train.py --config configs/metashape.txt
 
+line 71:
 
+            # image_path = os.path.join(self.root_dir, f"{frame['file_path']}.png")
+            image_path = os.path.join(self.root_dir, f"{frame['file_path']}")
 
+/home/lwk/ur_research/mesh_proj/NeRFDataPrep/three_methods/TensoRF/dataLoader/__init__.py
+/home/lwk/ur_research/mesh_proj/NeRFDataPrep/three_methods/TensoRF/dataLoader/metashape.py
+/home/lwk/ur_research/mesh_proj/NeRFDataPrep/three_methods/TensoRF/configs/metashape.txt
+/home/lwk/ur_research/mesh_proj/NeRFDataPrep/three_methods/TensoRF/opt.py
+
+ 31.70 (setting1)
+ 
 ## Results 
 
 - PSNR (val, train)

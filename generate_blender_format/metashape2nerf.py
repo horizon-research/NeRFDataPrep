@@ -145,8 +145,8 @@ if __name__ == "__main__":
 		else:
 			if idx % 8 == 0:
 				continue
-		rel_path = str(f"./{image_rel}/"+ img_name + ".JPG.png")
-		path = str(args.img_folder+ img_name + ".JPG.png")
+		rel_path = str(f"./{image_rel}/"+ img_name + ".png")
+		path = str(args.img_folder+ img_name + ".png")
 		b = sharpness(path)
 		print(path, "sharpness=",b)
 

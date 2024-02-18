@@ -32,6 +32,7 @@ def overlap_depth_mask_on_rgb(depth_masks_folder, rgb_folder, output_folder, alp
         # normalize the depth image
         MAX = np.max(depth_img)
         MIN = np.min(depth_img)
+
         depth_img = ((depth_img - MIN) / (MAX - MIN)) * 255.0
         depth_img = depth_img.astype(np.uint8)
         depth_img = cv2.applyColorMap(depth_img, cv2.COLORMAP_JET)
