@@ -27,8 +27,11 @@ Note: We can increase network capacity to improve PSNR  but in order to stay con
 # training
 cd scripts/
 python3 run.py ../configs/nerf/base.json --scene ../../../../garden/transforms_train.json --save_snapshot ../../../../garden/ingp_256_35000_base.ingp --n_steps 35000 --marching_cubes_res 256
+# python3 run.py ../configs/nerf/base.json --scene ../../../../garden/transforms_train.json --save_snapshot ../../../../garden/ingp_256_35000_base_all.ingp --n_steps 35000 --marching_cubes_res 256
 
 # testing and save snapshots of val set
 python3 run.py --scene ../../../../garden/transforms_train.json --load_snapshot  ../../../../garden/ingp_256_35000_base.ingp --test_transforms ../../../../garden/transforms_val.json --screenshot_transforms ../../../../garden/transforms_val.json --screenshot_dir ../../../../garden/ingp_256_35000_base_snapshots --marching_cubes_res 256
+
+#python3 run.py --scene ../../../../garden/transforms_train.json --load_snapshot  ../../../../garden/ingp_256_35000_base_all.ingp --test_transforms ../../../../garden/transforms_val.json --screenshot_transforms ../../../../garden/transforms_val.json --screenshot_dir ../../../../garden/ingp_256_35000_base_all_snapshots --marching_cubes_res 256
 ```
 

@@ -34,6 +34,7 @@ This repo is used to transform real-world images to the form that needed by our 
  A good bounding box should: 
  - contain only the foreground.
  - contain the foreground using size as small as possible.
+ - Inside the camera array
  ```bash
  cd crop_foreground
  python3 bounding_box_drawer.py --input_mesh <path_to_mesh.obj> --bbox <path_to_bbox.txt>
@@ -131,8 +132,8 @@ python3 generate_mask_image_set.py --depth_masks_folder ../garden/depths_masks_4
 ```
 
 
-## (5.2)
-run below code.Since I have normalize the data, aabb_scale=1 works fine in my case. And I use downscale_factor=4 which will be applied to camera intrinsicts.
+## (5.2) Generate blender format .json meta file.
+- Run below code to generate train, val and test splits.Since I have normalize the data, aabb_scale=1 works fine in my case. And I use downscale_factor=4 which will be applied to camera intrinsicts.
 ```bash
 cd gnerate_blender_format
 bash ./gnerate_blender_format.sh <aabb_scale> <path_to_parsed_meta.pkl> <json_output_folder> <img_folder> <downscale_factor>
@@ -141,21 +142,14 @@ bash ./gnerate_blender_format.sh <aabb_scale> <path_to_parsed_meta.pkl> <json_ou
 ```
 You shoud see "transforms_xxx.json" under the output_folder now.
 
-Here is how my ```garden/``` folder look like after this step:
-```
-.
-├── depth_mask_validation/
-├── depths_masks_4/
-├── images_4/
-├── mesh_cut.obj
-├── mesh.mtl
-├── mesh.obj
-├── meta.xml
-├── parsed_meta.pkl
-├── transforms_test.json
-├── transforms_train
-├── transforms_train.json
-└── transforms_val.json
+- Also, we provide another split way, that is using all data for training and evaluation, it is more sensible for the comparison between our experiments and baseline, see explaination in step 6. 
+
+Run below code to do such splitting:
+```bash
+cd gnerate_blender_format
+bash ./gnerate_blender_format_all.sh <aabb_scale> <path_to_parsed_meta.pkl> <json_output_folder> <img_folder> <downscale_factor>
+# modified from colmap2nerf in https://github.com/NVlabs/instant-ngp
+# eg. bash ./gnerate_blender_format_all.sh 1 ../garden/fix_norm_meta.pkl ../garden/ ../garden/images_4_mask/ 4.0
 ```
 
 # 5. tune the parameters for real-world dataset in three methods and get the final result.
@@ -175,17 +169,18 @@ For details about how to integrate and tune the parameters, see Readmes in [3mod
 ### Split 1: Training set for training, validation set for evaluation.
 - PSNR 
 
-    | split \ dataset | 360-Garden | 360-bonsai |  Tanks&Temple-Trunk | Tanks&Temple-Ignatius |
+    | method \ dataset | 360-Garden | 360-bonsai |  Tanks&Temple-Trunk | Tanks&Temple-Ignatius |
     |----------|----------|----------|----------|----------|
     | Instant NGP | 32.54 | -- | -- | -- |
     | DirectVoxGo   | 30.20 | -- | -- | -- |
-    | Tensor RF   | 31.98 | -- | -- | -- |
+    | Tensor RF   | 31.82 | -- | -- | -- |
 
 
-### Split 2: Use train+val set for training and evaluation.
+### Split 2: Use all train+val set for training and evaluation.
 - PSNR 
 
-    | split \ dataset | 360-Garden | 360-bonsai |  Tanks&Temple-Trunk | Tanks&Temple-Ignatius |
+    | method \ dataset | 360-Garden | 360-bonsai |  Tanks&Temple-Trunk | Tanks&Temple-Ignatius |
     |----------|----------|----------|----------|----------|
-    | Instant NGP | -- | -- | -- | -- |
-    | DirectVoxGo   | -- | -- | -- | -- |
+    | Instant NGP | 33.52 | -- | -- | -- |
+    | DirectVoxGo   | 31.69 | -- | -- | -- |
+    | Tensor RF   | 32.82 | -- | -- | -- |

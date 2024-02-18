@@ -33,6 +33,7 @@ def parse_args():
 	parser.add_argument("--parsed_meta", default="parsed_meta.pkl", help="The parsed meta file.")
 	parser.add_argument("--json_output_folder", default="", help="json_output_folder")
 	parser.add_argument("--img_folder", default="", help="the path to images")
+	parser.add_argument("--all", action='store_true', help='Generate all json')
 	parser.add_argument('--val', action='store_true', help='Generate val json')
 	parser.add_argument('--downscale_factor', type=float, default=1.0, help='Downscale factor for the images')
 	args = parser.parse_args()
@@ -53,7 +54,9 @@ def sharpness(imagePath):
 
 if __name__ == "__main__":
 	args = parse_args()
-	if args.val:
+	if args.all:
+		OUT_PATH = args.json_output_folder + "/transforms_all.json"
+	elif args.val:
 		OUT_PATH = args.json_output_folder + "/transforms_val.json"
 	else:
 		OUT_PATH = args.json_output_folder + "/transforms_train.json"
@@ -139,12 +142,13 @@ if __name__ == "__main__":
 		image_rel = os.path.relpath(args.img_folder, os.path.dirname(args.json_output_folder))
 		img_name = name_pose["name"]
 		pose = name_pose["transform"]
-		if args.val:
-			if idx % 8 != 0:
-				continue
-		else:
-			if idx % 8 == 0:
-				continue
+		if not args.all:
+			if args.val:
+				if idx % 8 != 0:
+					continue
+			else:
+				if idx % 8 == 0:
+					continue
 		rel_path = str(f"./{image_rel}/"+ img_name + ".png")
 		path = str(args.img_folder+ img_name + ".png")
 		b = sharpness(path)
