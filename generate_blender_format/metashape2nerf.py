@@ -137,6 +137,13 @@ if __name__ == "__main__":
 			"aabb_scale": AABB_SCALE
 		}
 
+	# if args.img_folder and args.json_output_folder are not end with /, add /
+	if args.img_folder[-1] != "/":
+		args.img_folder += "/"
+	if args.json_output_folder[-1] != "/":
+		args.json_output_folder += "/"
+
+	
 	up = np.zeros(3)
 	for idx, name_pose in enumerate(name_poses):
 		image_rel = os.path.relpath(args.img_folder, os.path.dirname(args.json_output_folder))
@@ -149,8 +156,9 @@ if __name__ == "__main__":
 			else:
 				if idx % 8 == 0:
 					continue
+		# import ipdb; ipdb.set_trace()
 		rel_path = str(f"./{image_rel}/"+ img_name + ".png")
-		path = str(args.img_folder+ img_name + ".png")
+		path = str(args.img_folder+img_name + ".png")
 		b = sharpness(path)
 		print(path, "sharpness=",b)
 

@@ -33,6 +33,14 @@ def get_normalized_mesh(mesh_path, bbox):
     translation_matrix[:3, 3] = np.array([bbox["cx"], bbox["cy"], bbox["cz"]])
     translation_matrix = np.linalg.inv(translation_matrix)
     mesh = apply_transorm_to_mesh(mesh, translation_matrix)
+    # rotation (rz)
+    rotation_matrix = trimesh.transformations.rotation_matrix(np.radians(bbox["rz"]), [0, 0, 1])
+    rotation_matrix = np.linalg.inv(rotation_matrix)
+    mesh = apply_transorm_to_mesh(mesh, rotation_matrix)
+    # rotation (ry)
+    rotation_matrix = trimesh.transformations.rotation_matrix(np.radians(bbox["ry"]), [0, 1, 0])
+    rotation_matrix = np.linalg.inv(rotation_matrix)
+    mesh = apply_transorm_to_mesh(mesh, rotation_matrix)
     # rotation (rx)
     rotation_matrix = trimesh.transformations.rotation_matrix(np.radians(bbox["rx"]), [1, 0, 0])
     rotation_matrix = np.linalg.inv(rotation_matrix)
@@ -61,7 +69,11 @@ def get_normalized_meta(parsed_meta, bbox):
     transform_matrix = np.linalg.inv(transform_matrix)
 
     rotation_matrix = trimesh.transformations.rotation_matrix(np.radians(rx), [1, 0, 0])
-    rotation_matrix = np.linalg.inv(rotation_matrix)
+    rotation_matrix_x = np.linalg.inv(rotation_matrix)
+    rotation_matrix = trimesh.transformations.rotation_matrix(np.radians(ry), [0, 1, 0])
+    rotation_matrix_y = np.linalg.inv(rotation_matrix)
+    rotation_matrix = trimesh.transformations.rotation_matrix(np.radians(rz), [0, 0, 1])
+    rotation_matrix_z = np.linalg.inv(rotation_matrix)
 
 
     name_poses = parsed_meta["name_poses"]
@@ -69,7 +81,9 @@ def get_normalized_meta(parsed_meta, bbox):
         pose = name_pose["transform"]
         # apply transform 1 and 2 to pose
         pose = np.dot(transform_matrix, pose)
-        pose = np.dot(rotation_matrix, pose)
+        pose = np.dot(rotation_matrix_z, pose)
+        pose = np.dot(rotation_matrix_y, pose)
+        pose = np.dot(rotation_matrix_x, pose)
         # scale the pose, only scale translation
         pose[:3, 3] = pose[:3, 3] / scale_factor
         name_pose["transform"] = pose

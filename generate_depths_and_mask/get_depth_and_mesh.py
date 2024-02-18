@@ -53,7 +53,7 @@ def depth_and_mask_from_mesh(parsed_meta_path, mesh_path, output_folder, downsam
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate depth and foreground mask from mesh')
-    parser.add_argument('--cut_mesh', type=str, help='Path to the cut mesh')
+    parser.add_argument('--norm_mesh', type=str, help='Path to the cut mesh')
     parser.add_argument('--parsed_meta', type=str, help='Path to the parsed meta.pkl file')
     parser.add_argument('--downsampled_factor', type=float, default=4.0, help='Factor by which to downsample the output')
     parser.add_argument('--output_folder', type=str, help='Path to the output folder')
@@ -62,5 +62,5 @@ if __name__ == '__main__':
     if not os.path.exists(args.output_folder):
         os.makedirs(args.output_folder)
 
-    depth_and_mask_from_mesh(args.parsed_meta, args.cut_mesh, args.output_folder, args.downsampled_factor)
+    depth_and_mask_from_mesh(args.parsed_meta, args.norm_mesh, args.output_folder, args.downsampled_factor)
     
