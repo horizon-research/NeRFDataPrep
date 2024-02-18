@@ -3,7 +3,7 @@ import trimesh
 import pyrender
 import numpy as np
 import re
-
+import pickle
 
 def update_bounding_box_lines(scene, line_mesh_nodes, cx, cy, cz, rx, ry, rz, lx, ly, lz):
     # define the bounding box
@@ -124,6 +124,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Draw bounding boxes on mesh, to help us decide the bounding box for foregorund extraction.")
     parser.add_argument("--input_mesh", help="The input mesh file.")
     parser.add_argument("--bbox", default="garden_bbox.txt", help="The input mesh file.")
+    parser.add_argument("--parsed_meta",  help="parsed_meta")
+
     args = parser.parse_args()
 
     # Create a pyrender scene
@@ -149,6 +151,19 @@ if __name__ == "__main__":
 
     # add the node to the scene
     scene.add_node(axis_node)
+
+
+
+    # add the camera poses to the scene
+    arrow_mesh = trimesh.creation.axis(origin_size=0.2, axis_radius=0.02, axis_length=1)
+    mesh = pyrender.Mesh.from_trimesh(arrow_mesh, smooth=False)
+    with open(args.parsed_meta, "rb") as f:
+        parsed_meta = pickle.load(f)
+    names_poses = parsed_meta["name_poses"]
+    for name_pose in names_poses:
+        pose = name_pose["transform"]
+        node = pyrender.Node(mesh=mesh, matrix=pose)
+        scene.add_node(node)
 
 
     # parse the bounding box from the text file

@@ -13,6 +13,8 @@ For example, ```metashape.txts```
 
 ### (2.1) copy our [metashape.py](./tensorRF/metashape.py) in [3models/tensorRF/](./tensorRF/) to their dataLoader/ folder
 
+it set the bounding box and near, far parameters.
+
 ### (2.2) replace their __init__.py in dataLoader/ folder using:
 ```python
 from .llff import LLFFDataset

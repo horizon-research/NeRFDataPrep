@@ -26,6 +26,15 @@ This repo is used to transform real-world images to the form that needed by our 
  Due to sparse sampling, metashape can't reconstruct background mesh well, it well cause holes or inaccuracy in depth maps, so here we delete the background mesh that we don't care. During the experiments, we only computing sparsity in the foreground. 
  This step has two stages, first you need to decide the foreground bounding box, then you need to process the whole mesh to filter out faces outside of the bounding box.
 
+## (3.1) Parse the metashape data
+run:
+```bash
+cd norm_and_fix_data
+python3 parse_cameras_meta.py --meta_file <path_to_meta.xml> --output_path <path_to_save_parsed_meta.pkl>
+# eg. python3 parse_cameras_meta.py --meta_file ../garden/meta.xml --output_path ../garden/parsed_meta.pkl
+
+```
+
  ### (2.1) Decide the foreground bounding box
 
  use following script to visualize bounding box and mesh, adjust the bounding box to 
@@ -38,7 +47,7 @@ This repo is used to transform real-world images to the form that needed by our 
  ```bash
  cd crop_foreground
  python3 bounding_box_drawer.py --input_mesh <path_to_mesh.obj> --bbox <path_to_bbox.txt>
- # eg. python3 bounding_box_drawer.py --input_mesh ../garden/mesh.obj --bbox ./garden_bbox.txt
+ # eg. python3 bounding_box_drawer.py --input_mesh ../garden/mesh.obj --bbox ./garden_bbox.txt --parsed_meta ../garden/parsed_meta.pkl
  # see crop_foreground/garden_bbox.txt to know how to write bbox.txt
  # cx, cy, cz are centers
  # rx, ry, rz are rotation in degrees
@@ -77,7 +86,7 @@ python3 parse_cameras_meta.py --meta_file <path_to_meta.xml> --output_path <path
 In this stage we normalize the foreground to 1x1x1 bounding box around origin using the foreground bounding box information.
 run:
 ```bash
-python3 norm_poses_mesh.py --parsed_meta ../garden/parsed_meta.pkl --input_mesh ../garden/mesh_cut.obj --output_mesh_path ../garden/norm_mesh.obj --output_meta_path ../garden/norm_meta.pkl
+python3 norm_poses_mesh.py --parsed_meta ../garden/parsed_meta.pkl --input_mesh ../garden/mesh_cut.obj --output_mesh_path ../garden/norm_mesh.obj --output_meta_path ../garden/norm_meta.pkl --bbox ../crop_foreground/garden_bbox.txt
 ```
 Then you will see a visualization windows shows the normalized results like below, make sure postive z-axis (blue) is pointed to the target and mesh is alighed with the axis in the same way as it aligh with the foreground bounding box. 
 <p float="left">
@@ -136,9 +145,9 @@ python3 generate_mask_image_set.py --depth_masks_folder ../garden/depths_masks_4
 - Run below code to generate train, val and test splits.Since I have normalize the data, aabb_scale=1 works fine in my case. And I use downscale_factor=4 which will be applied to camera intrinsicts.
 ```bash
 cd gnerate_blender_format
-bash ./gnerate_blender_format.sh <aabb_scale> <path_to_parsed_meta.pkl> <json_output_folder> <img_folder> <downscale_factor>
+bash ./gnerate_blender_format_trainval.sh <aabb_scale> <path_to_parsed_meta.pkl> <json_output_folder> <img_folder> <downscale_factor>
 # modified from colmap2nerf in https://github.com/NVlabs/instant-ngp
-# eg. bash ./gnerate_blender_format.sh 1 ../garden/fix_norm_meta.pkl ../garden/ ../garden/images_4_mask/ 4.0
+# eg. bash ./gnerate_blender_format_trainval.sh 1 ../garden/fix_norm_meta.pkl ../garden/ ../garden/images_4_mask/ 4.0
 ```
 You shoud see "transforms_xxx.json" under the output_folder now.
 
@@ -171,9 +180,9 @@ For details about how to integrate and tune the parameters, see Readmes in [3mod
 
     | method \ dataset | 360-Garden | 360-bonsai |  Tanks&Temple-Trunk | Tanks&Temple-Ignatius |
     |----------|----------|----------|----------|----------|
-    | Instant NGP | 32.54 | -- | -- | -- |
-    | DirectVoxGo   | 30.20 | -- | -- | -- |
-    | Tensor RF   | 31.82 | -- | -- | -- |
+    | Instant NGP | **32.54** | **32.05** | -- | -- |
+    | DirectVoxGo   | 30.20 | 27.56 | -- | -- |
+    | Tensor RF   | 31.82 |  30.48 | -- | -- |
 
 
 ### Split 2: Use all train+val set for training and evaluation.
@@ -181,6 +190,6 @@ For details about how to integrate and tune the parameters, see Readmes in [3mod
 
     | method \ dataset | 360-Garden | 360-bonsai |  Tanks&Temple-Trunk | Tanks&Temple-Ignatius |
     |----------|----------|----------|----------|----------|
-    | Instant NGP | 33.52 | -- | -- | -- |
-    | DirectVoxGo   | 31.69 | -- | -- | -- |
-    | Tensor RF   | 32.82 | -- | -- | -- |
+    | Instant NGP | **33.52** | **32.46** | -- | -- |
+    | DirectVoxGo   | 31.69 | 28.87 | -- | -- |
+    | Tensor RF   | 32.82 | 31.99 | -- | -- |

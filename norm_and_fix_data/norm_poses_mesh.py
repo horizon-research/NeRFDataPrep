@@ -83,7 +83,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Parse the metadata file')
     parser.add_argument('--parsed_meta', type=str, help='The path to the metadata file')
     parser.add_argument("--input_mesh", help="The input mesh file.")
-    parser.add_argument("--bbox", default="../crop_foreground/garden_bbox.txt", help="The input bbox file.")
+    parser.add_argument("--bbox", help="The input bbox file.")
     parser.add_argument('--output_mesh_path', type=str, help='The path for the normalized mesh output file')
     parser.add_argument('--output_meta_path', type=str, help='The path for the normalized poses output file')
     args = parser.parse_args()
