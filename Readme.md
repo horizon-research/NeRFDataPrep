@@ -213,3 +213,26 @@ For details about how to integrate and tune the parameters, see Readmes in [3mod
     | Instant NGP | **33.52** | **32.46**  | 29.39 |
     | DirectVoxGo   | 31.69 | 28.87  | 30.53 |
     | Tensor RF   | 32.82 | 31.99 |  **31.07** |
+
+
+# 6 Warping 
+
+## PSNR: foreground only, skip=7
+ignatius:
+```
+instant ngp: 
+python3 warping_evaluation.py --nerf_results_folder ignatius/ingp_256_35000_base_snapshots_all --gt_folder ignatius/images_2 --depth_and_mask_folder ignatius/depths_masks_2 --result_path ignatius/ --item_name ignatius --meta_data_path ignatius/fix_norm_meta.pkl --downscale_factor 2 
+
+[Final] PSNR: 29.847098, 30.205088, 37.422740, 36.840367, fill pct: 0.265401
+```
+
+garden:
+```
+instant ngp: 
+python3 warping_evaluation.py --nerf_results_folder garden/ingp_256_35000_base_all_snapshots/ --gt_folder garden/images_4 --depth_and_mask_folder garden/depths_masks_4 --resu
+lt_path garden/ --item_name garden --meta_data_path garden/fix_norm_meta.pkl --downscale_factor 4
+
+
+```
+
+

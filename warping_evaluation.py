@@ -8,19 +8,20 @@ from skimage.metrics import structural_similarity as ssim
 from skvideo.io import FFmpegWriter
 import argparse
 from glob import glob
-
-FocalLenthDict = {
-    "lego" : 1111,
-    "mic" : 1111,
-    "drums": 1250,
-    "hotdog": 1111,
-    "chess" : 1250,
-    "chair" : 1111,
-    "kitchen" : 1111,
-    "mic" : 1111,
-    "room" : 1111,
-    "ship" : 1111,
-}
+import pickle
+from tqdm import tqdm
+# FocalLenthDict = {
+#     "lego" : 1111,
+#     "mic" : 1111,
+#     "drums": 1250,
+#     "hotdog": 1111,
+#     "chess" : 1250,
+#     "chair" : 1111,
+#     "kitchen" : 1111,
+#     "mic" : 1111,
+#     "room" : 1111,
+#     "ship" : 1111,
+# }
 
 # def PSNR(original, compressed, depth_map):
 #     mse = np.mean((original[depth_map>0] - compressed[depth_map>0]) ** 2)
@@ -32,13 +33,17 @@ FocalLenthDict = {
 #     return psnr
 
 
-def PSNR(original, compressed):
-    mse = np.mean((original - compressed) ** 2)
+def PSNR(original, compressed, mask = None):
+    if mask is not None:
+        mse = np.mean((original[mask] - compressed[mask]) ** 2)
+    else:
+        mse = np.mean((original - compressed) ** 2)
     if(mse == 0):  # MSE is zero means no noise is present in the signal .
                   # Therefore PSNR have no importance.
         return 100
     max_pixel = 255.0
     psnr = 20 * math.log10(max_pixel / math.sqrt(mse))
+
     return psnr
 
 # camera coord direction is 
@@ -179,10 +184,22 @@ def option():
     parser = argparse.ArgumentParser()
     # Data input settings
     parser.add_argument(
-        "--dataset_path",
+        "--nerf_results_folder",
         type=str,
         default="synthetic_dataset",
-        help="path to synthetic dataset, default: 'synthetic_dataset'",
+        help="path to nerf_results_folder",
+    )
+    parser.add_argument(
+        "--gt_folder",
+        type=str,
+        default="synthetic_dataset",
+        help="path to gt_folder",
+    )
+    parser.add_argument(
+        "--depth_and_mask_folder",
+        type=str,
+        default="synthetic_dataset",
+        help="path to depth_and_mask_folder",
     )
     parser.add_argument(
         "--result_path",
@@ -197,12 +214,6 @@ def option():
         help="evaluated item name, default: None",
     )
     parser.add_argument(
-        "--split",
-        type=str,
-        default="test",
-        help="evaluated train/test set, default: test",
-    )
-    parser.add_argument(
         "--skip_count", type=int, help="the number of frames skipped inference", default=7
     )
     parser.add_argument(
@@ -212,24 +223,16 @@ def option():
         help="preview the result, default: False",
     )
     parser.add_argument(
-        "--image_shape",
-        nargs=2,
-        type=int,
-        default=[800, 800],
-        help="image shape, [HEIGHT, WIDTH] default: [800, 800]",
+        "--meta_data_path",
+        type=str,
+        default="meta_data_path",
+        help="path to meta_data_path contains camera params",
     )
     parser.add_argument(
-        "--focal_length",
-        nargs=2,
-        type=int,
-        default=[1250, 1250],
-        help="camera focal length in x- and y-axis, [HEIGHT, WIDTH] default: [1250, 1250]",
-    )
-    parser.add_argument(
-        "--depth_scale", 
-        type=int, 
-        default=0.1, 
-        help="the depth map scale, the depth values are scaled by this value, e.g. `0.1`",
+        "--downscale_factor",
+        type=float,
+        default="downscale_factor",
+        help="downscale_factor",
     )
 
     # parse
@@ -240,36 +243,24 @@ def option():
 def main():
 
     args = option()
+    # read meta dat 
+    with open(args.meta_data_path, "rb") as f:
+        meta_data = pickle.load(f)
 
-    # camera configs
-    if args.item_name not in FocalLenthDict:
-        fl_x = args.focal_length[0]         # x-axis focal length
-        fl_y = args.focal_length[1]         # y-axis focal length
-    else:
-        fl_x = FocalLenthDict[args.item_name]   # x-axis focal length
-        fl_y = FocalLenthDict[args.item_name]   # y-axis focal length
-
-    img_width = args.image_shape[0]     # image width
-    img_height = args.image_shape[1]    # image height
-    cx = img_width/2                    # camera center in x-axis
-    cy = img_height/2                   # camera center in y-axis
-    depth_scale = args.depth_scale
-    depth_range = 1/depth_scale
+    fl_x = meta_data["intrinsics"]["f"] / args.downscale_factor
+    fl_y = meta_data["intrinsics"]["f"] / args.downscale_factor
+    cx = meta_data["intrinsics"]["cx"] / args.downscale_factor
+    cy = meta_data["intrinsics"]["cy"] / args.downscale_factor
+    img_width = round(meta_data["intrinsics"]["width"] / args.downscale_factor)
+    img_height = round(meta_data["intrinsics"]["height"] / args.downscale_factor)
 
     # dataset config
     item_name = args.item_name
-    split = args.split
-    depth_dir = "%s/%s/depth" % (args.dataset_path, item_name)
-    img_dir = "%s/%s_result" % (args.result_path, item_name)
-    gt_dir = "%s/%s/%s" % (args.dataset_path, item_name, split)
-    transform_fn = "%s/%s/transforms_%s.json" % (args.dataset_path, item_name, split)
 
     # count number of frames
     skip_count = args.skip_count
-    total_cnt = len(glob("%s/*.exr" % depth_dir))      # total frame count
+    total_cnt = len(meta_data["name_poses"])      # total frame count
 
-    # load trasnformation matrix files
-    transform_list = load_transform_file(transform_fn)
 
     # init and stats.
     prev_pcd = None
@@ -292,38 +283,60 @@ def main():
         }
     )
 
-    for i in range(0, total_cnt, 1):
-        # find current rendering file
-        curr_depth_fn = "%s/r_%d.exr" % (depth_dir, i)
-        # curr_fn = "%s/out_%03d.png" % (img_dir, i)              # instant-ngp
-        # curr_fn = "%s/imgs_test_all/%03d.png" % (img_dir, i)    # tensort
-        curr_fn = "%s/%03d.png" % (img_dir, i)                  # DirectVoxGO
-        # find reference rendered file
+    for i, name_pose in tqdm(enumerate(meta_data["name_poses"]), total=total_cnt):
         ref_num = find_reference_frame(i, skip_count, total_cnt)
-        ref_depth_fn = "%s/r_%d.exr" % (depth_dir, ref_num)
-        # ref_fn = "%s/out_%03d.png" % (img_dir, ref_num)             # instant-ngp
-        # ref_fn = "%s/imgs_test_all/%03d.png" % (img_dir, ref_num)   # tensort
-        ref_fn = "%s/%03d.png" % (img_dir, ref_num)                 # DirectVoxGO
-        # find ground truth file
-        gt_fn = "%s/r_%d.png" % (gt_dir, i)
-        print(curr_fn, ref_fn, gt_fn)
+
+        name = name_pose["name"]
+        pose = name_pose["transform"]
+        curr_depth_fn = args.depth_and_mask_folder + "/" + name + "_depth_fp32.npy"
+        curr_mask_fn = args.depth_and_mask_folder + "/" + name + "_mask_uint8.npy"
+        curr_rgb_fn = args.nerf_results_folder + "/" + name + ".png"
+
+        ref_depth_fn = args.depth_and_mask_folder + "/" + meta_data["name_poses"][ref_num]["name"] + "_depth_fp32.npy"
+        ref_mask_fn = args.depth_and_mask_folder + "/" + meta_data["name_poses"][ref_num]["name"] + "_mask_uint8.npy"
+        ref_rgb_fn = args.nerf_results_folder + "/" + meta_data["name_poses"][ref_num]["name"] + ".png"
+
+        gt_rgb_fn = args.gt_folder + "/" + name + ".JPG"
+        
+
+
+        print(curr_rgb_fn, ref_rgb_fn, gt_rgb_fn)
 
 
         # load current depth and image data
-        curr_trans_mat = transform_list[i]        
+        curr_trans_mat = pose
         inverse_trans_mat = inverse_transform_mat(curr_trans_mat)
-        curr_depth_map = cv2.imread(curr_depth_fn, cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH)/depth_scale
-        curr_depth_map[curr_depth_map > (depth_range-0.01)] = 0
-        curr_img = cv2.imread(curr_fn)
+        curr_depth_map = np.load(curr_depth_fn)
+        # add a channel
+        curr_depth_map = curr_depth_map[:, :, np.newaxis]
+        curr_mask = np.load(curr_mask_fn)
+
+        curr_img = cv2.imread(curr_rgb_fn)
 
         # load reference depth and image data
-        ref_trans_mat = transform_list[ref_num]
-        ref_depth_map = cv2.imread(ref_depth_fn, cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH)/depth_scale
-        ref_depth_map[ref_depth_map > (depth_range-0.01)] = 0
-        ref_img = cv2.imread(ref_fn)
+        ref_trans_mat = meta_data["name_poses"][ref_num]["transform"]
+        ref_depth_map = np.load(curr_depth_fn)
+        ref_mask = np.load(curr_mask_fn)
+        # add a channel
+        ref_depth_map = ref_depth_map[:, :, np.newaxis]
+        ref_mask= np.load(ref_mask_fn)
+        ref_img = cv2.imread(ref_rgb_fn)
 
         # load ground truth image
-        gt_img = cv2.imread(gt_fn)
+        gt_img = cv2.imread(gt_rgb_fn)
+
+        # mask, act, ref gt
+        curr_mask = curr_mask[:, :, np.newaxis] == 1
+        # make it 3 channel
+        curr_mask = np.repeat(curr_mask, 3, axis=2)
+        ref_mask = ref_mask[:, :, np.newaxis] == 1
+        # make it 3 channel
+        ref_mask = np.repeat(ref_mask, 3, axis=2)
+        curr_img = curr_img * curr_mask
+        ref_img = ref_img * ref_mask
+        gt_img = gt_img * curr_mask
+
+
 
         if ref_num != i:
             # conpose point cloud
@@ -351,7 +364,7 @@ def main():
             restored_img, z_buffer = pc_to_rgb(
                 copy.deepcopy(ref_pcd).transform(inverse_trans_mat), 
                 fl_x, fl_y, cx, cy, 
-                img_width, img_height, depth_range
+                img_width, img_height, depth_range=100
             )
 
             fill_pct = 0
@@ -378,8 +391,9 @@ def main():
         )
         
         # evaluate accuracy
-        exp_psnr_val = PSNR(restored_img, gt_img)
-        act_psnr_val = PSNR(curr_img, gt_img)
+        # import ipdb; ipdb.set_trace()
+        exp_psnr_val = PSNR(restored_img, gt_img, curr_mask)
+        act_psnr_val = PSNR(curr_img, gt_img, curr_mask)
         resize_x2_psnr_val = PSNR(
             cv2.resize(curr_img[::2, ::2, :], (img_width, img_height)), 
             gt_img
