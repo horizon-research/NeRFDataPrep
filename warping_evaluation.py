@@ -381,11 +381,11 @@ def main():
         exp_psnr_val = PSNR(restored_img, gt_img)
         act_psnr_val = PSNR(curr_img, gt_img)
         resize_x2_psnr_val = PSNR(
-            cv2.resize(curr_img[::2, ::2, :], (img_height, img_width)), 
+            cv2.resize(curr_img[::2, ::2, :], (img_width, img_height)), 
             gt_img
         )
         resize_x4_psnr_val = PSNR(
-            cv2.resize(curr_img[::4, ::4, :], (img_height, img_width)), 
+            cv2.resize(curr_img[::4, ::4, :], (img_width, img_height)), 
             gt_img
         )
         print(

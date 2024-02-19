@@ -60,9 +60,8 @@ python3 parse_cameras_meta.py --meta_file "$workspace"/meta.xml --output_path "$
  make it contain only the forground, use the coordinate drawn in the viewer to help you adjust it.
 
  A good bounding box should: 
- - contain only the foreground.
+ - contain everything inside the camera array (prevent inconsistency between views)
  - contain the foreground using size as small as possible.
- - Inside the camera array
  ```bash
  cd crop_foreground
  python3 bounding_box_drawer.py --input_mesh "$workspace"/mesh.obj --bbox <path_to_bbox.txt> --parsed_meta "$workspace"/parsed_meta.pkl
@@ -82,8 +81,8 @@ python3 parse_cameras_meta.py --meta_file "$workspace"/meta.xml --output_path "$
  run below code to filter out the background mesh:
 ```bash
  cd crop_foreground
-python3 background_mesh_filter.py --input_mesh "$workspace"/mesh.obj --output_path "$workspace"/mesh_cut.obj --bbox <path_to_bbox> --num_workers 16
-# eg. python3 background_mesh_filter.py --input_mesh ../garden/mesh.obj --output_path ../garden/mesh_cut.obj --bbox garden_bbox.txt --num_workers 16
+python3 background_mesh_filter.py --input_mesh "$workspace"/mesh.obj --output_path "$workspace"/mesh_cut.obj --bbox <path_to_bbox> --num_workers 8
+# eg. python3 background_mesh_filter.py --input_mesh ../garden/mesh.obj --output_path ../garden/mesh_cut.obj --bbox garden_bbox.txt --num_workers 8
 ```
 After the filtering, pyrender viewer will show the bounding box and cropped result like below:
 <p float="left">
@@ -199,18 +198,18 @@ For details about how to integrate and tune the parameters, see Readmes in [3mod
 ### Split 1: Training set for training, validation set for evaluation.
 - PSNR 
 
-    | method \ dataset | 360-Garden | 360-bonsai |  Tanks&Temple-Trunk (very bad due to dynamic obstacle) | Tanks&Temple-Ignatius |
-    |----------|----------|----------|----------|----------|
-    | Instant NGP | **32.54** | **32.05**| -- | 27.83 |
-    | DirectVoxGo   | 30.20 | 27.56 | -- | 27.82 |
-    | Tensor RF   | 31.82 |  30.48 | -- | **28.44** |
+    | method \ dataset | 360-Garden | 360-bonsai | Tanks&Temple-Ignatius |
+    |----------|----------|----------|----------|
+    | Instant NGP | **32.54** | **32.05** | 27.83 |
+    | DirectVoxGo   | 30.20 | 27.56  | 27.82 |
+    | Tensor RF   | 31.82 |  30.48 | **28.44** |
 
 
 ### Split 2: Use all train+val set for training and evaluation.
 - PSNR 
 
-    | method \ dataset | 360-Garden | 360-bonsai |  Tanks&Temple-Trunk | Tanks&Temple-Ignatius |
-    |----------|----------|----------|----------|----------|
-    | Instant NGP | **33.52** | **32.46** | -- | 29.39 |
-    | DirectVoxGo   | 31.69 | 28.87 | -- | 30.53 |
-    | Tensor RF   | 32.82 | 31.99 | -- | **31.07** |
+    | method \ dataset | 360-Garden | 360-bonsai | Tanks&Temple-Ignatius |
+    |----------|----------|----------|----------|
+    | Instant NGP | **33.52** | **32.46**  | 29.39 |
+    | DirectVoxGo   | 31.69 | 28.87  | 30.53 |
+    | Tensor RF   | 32.82 | 31.99 |  **31.07** |
