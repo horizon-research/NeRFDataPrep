@@ -47,3 +47,9 @@ The config is same as blender but change the name of exp, output and dataset.
 ```bash
 python3 run.py --config configs/metashape.py --render_test
 ```
+
+
+### 4. generate images:
+```bash
+python3 run.py --config configs/metashape_bonsai_all.py --render_only --render_test --dump_images
+```

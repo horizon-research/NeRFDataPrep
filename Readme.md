@@ -229,10 +229,15 @@ python3 warping_evaluation.py --nerf_results_folder ignatius/ingp_256_35000_base
 garden:
 ```
 instant ngp: 
-python3 warping_evaluation.py --nerf_results_folder garden/ingp_256_35000_base_all_snapshots/ --gt_folder garden/images_4 --depth_and_mask_folder garden/depths_masks_4 --resu
-lt_path garden/ --item_name garden --meta_data_path garden/fix_norm_meta.pkl --downscale_factor 4
+python3 warping_evaluation.py --nerf_results_folder garden/ingp_256_35000_base_all_snapshots/ --gt_folder garden/images_4 --depth_and_mask_folder garden/depths_masks_4 --result_path garden/ --item_name garden --meta_data_path garden/fix_norm_meta.pkl --downscale_factor 4
+[Final] PSNR: 31.697880, 33.262846, 36.563756, 35.389912, fill pct: 0.339527
 
+```
 
+bonsai:
+```
+instant ngp: 
+python3 warping_evaluation.py --nerf_results_folder bonsai/ingp_256_35000_base_snapshots_all/ --gt_folder bonsai/images_4 --depth_and_mask_folder bonsai/depths_masks_4 --result_path garden/ --item_name garden --meta_data_path bonsai/fix_norm_meta.pkl --downscale_factor 4 
 ```
 
 

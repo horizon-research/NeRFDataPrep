@@ -101,8 +101,8 @@ def pc_to_rgb(pcd, fl_x, fl_y, cx, cy, img_width, img_height, depth_range):
     z_buffer[:, :] = depth_range
     points = np.asarray(pcd.points)
     colors = np.asarray(pcd.colors)
-    np.save("pcd.npy", points)
-    np.save("rgb.npy", colors)
+    # np.save("pcd.npy", points)
+    # np.save("rgb.npy", colors)
 
     for i, pt in enumerate(points):
         rgb = colors[i]
@@ -234,6 +234,13 @@ def option():
         default="downscale_factor",
         help="downscale_factor",
     )
+    parser.add_argument(
+        "--method_name",
+        type=str,
+        default="method_name",
+        choices=["cicero_instant_ngp", "cicero_dgo", "cicero_tensorrf"],
+        help="eg. Cicero + instant_igp, tensorrf...",
+    )
 
     # parse
     args = parser.parse_args()
@@ -255,7 +262,7 @@ def main():
     img_height = round(meta_data["intrinsics"]["height"] / args.downscale_factor)
 
     # dataset config
-    item_name = args.item_name
+    item_name = args.item_name + "_" + args.method_name
 
     # count number of frames
     skip_count = args.skip_count
@@ -264,12 +271,18 @@ def main():
 
     # init and stats.
     prev_pcd = None
-    total_exp_psnr = []
-    total_act_psnr = []
-    total_resize_x2_psnr = []
-    total_resize_x4_psnr = []
-    total_ssim = []
+    total_exp_psnr_all = []
+    total_act_psnr_all = []
+    total_resize_x2_psnr_all = []
+    total_resize_x4_psnr_all = []
+    total_exp_psnr_fg = []
+    total_act_psnr_fg = []
+    total_resize_x2_psnr_fg = []
+    total_resize_x4_psnr_fg = []
+    
+    # total_ssim = []
     total_fill_pct = []
+    not_ref_fill_pct = []
 
     # output log file and write a demo video
     log_file = open("%s/%s_s%02d_log.txt" % (args.result_path, item_name, args.skip_count), "w")
@@ -290,11 +303,19 @@ def main():
         pose = name_pose["transform"]
         curr_depth_fn = args.depth_and_mask_folder + "/" + name + "_depth_fp32.npy"
         curr_mask_fn = args.depth_and_mask_folder + "/" + name + "_mask_uint8.npy"
-        curr_rgb_fn = args.nerf_results_folder + "/" + name + ".png"
+        if args.method_name == "cicero_instant_ngp":
+            curr_rgb_fn = args.nerf_results_folder + "/" + name + ".png"
+        else:
+            formatted_string = "{:03d}".format(i)
+            curr_rgb_fn = args.nerf_results_folder + "/" + formatted_string + ".png"
 
         ref_depth_fn = args.depth_and_mask_folder + "/" + meta_data["name_poses"][ref_num]["name"] + "_depth_fp32.npy"
         ref_mask_fn = args.depth_and_mask_folder + "/" + meta_data["name_poses"][ref_num]["name"] + "_mask_uint8.npy"
-        ref_rgb_fn = args.nerf_results_folder + "/" + meta_data["name_poses"][ref_num]["name"] + ".png"
+        if args.method_name == "cicero_instant_ngp":
+            ref_rgb_fn = args.nerf_results_folder + "/" + meta_data["name_poses"][ref_num]["name"] + ".png"
+        else:
+            formatted_string = "{:03d}".format(ref_num)
+            ref_rgb_fn = args.nerf_results_folder + "/" + formatted_string + ".png"
 
         gt_rgb_fn = args.gt_folder + "/" + name + ".JPG"
         
@@ -315,11 +336,10 @@ def main():
 
         # load reference depth and image data
         ref_trans_mat = meta_data["name_poses"][ref_num]["transform"]
-        ref_depth_map = np.load(curr_depth_fn)
-        ref_mask = np.load(curr_mask_fn)
+        ref_depth_map = np.load(ref_depth_fn)
+        ref_mask = np.load(ref_mask_fn)
         # add a channel
         ref_depth_map = ref_depth_map[:, :, np.newaxis]
-        ref_mask= np.load(ref_mask_fn)
         ref_img = cv2.imread(ref_rgb_fn)
 
         # load ground truth image
@@ -364,7 +384,7 @@ def main():
             restored_img, z_buffer = pc_to_rgb(
                 copy.deepcopy(ref_pcd).transform(inverse_trans_mat), 
                 fl_x, fl_y, cx, cy, 
-                img_width, img_height, depth_range=100
+                img_width, img_height, depth_range=1000
             )
 
             fill_pct = 0
@@ -392,52 +412,116 @@ def main():
         
         # evaluate accuracy
         # import ipdb; ipdb.set_trace()
-        exp_psnr_val = PSNR(restored_img, gt_img, curr_mask)
-        act_psnr_val = PSNR(curr_img, gt_img, curr_mask)
-        resize_x2_psnr_val = PSNR(
+
+        # compute all PSNR
+        exp_psnr_val_all = PSNR(restored_img, gt_img)
+        act_psnr_val_all = PSNR(curr_img, gt_img)
+        resize_x2_psnr_val_all = PSNR(
             cv2.resize(curr_img[::2, ::2, :], (img_width, img_height)), 
             gt_img
         )
-        resize_x4_psnr_val = PSNR(
+        resize_x4_psnr_val_all = PSNR(
             cv2.resize(curr_img[::4, ::4, :], (img_width, img_height)), 
             gt_img
         )
         print(
-            "[Metric %d] PSNR: %f, %f, %f %f, fill pct: %f" % (
-                i, exp_psnr_val, act_psnr_val, resize_x2_psnr_val, 
-                resize_x4_psnr_val, fill_pct
+            "[Metric %d] ALL PSNR: %f, %f, %f %f, fill pct: %f" % (
+                i, exp_psnr_val_all, act_psnr_val_all, resize_x2_psnr_val_all, 
+                resize_x4_psnr_val_all, fill_pct
             )
         )
         log_file.write(
-            "[Metric %d] PSNR: %f, %f, %f %f, fill pct: %f\n" % (
-                i, exp_psnr_val, act_psnr_val, resize_x2_psnr_val, 
-                resize_x4_psnr_val, fill_pct
+            "[Metric %d] ALL PSNR: %f, %f, %f %f, fill pct: %f\n" % (
+                i, exp_psnr_val_all, act_psnr_val_all, resize_x2_psnr_val_all, 
+                resize_x4_psnr_val_all, fill_pct
             )
         )
-        total_exp_psnr.append(exp_psnr_val)
-        total_act_psnr.append(act_psnr_val)
-        total_resize_x2_psnr.append(resize_x2_psnr_val)
-        total_resize_x4_psnr.append(resize_x4_psnr_val)
+
+        total_exp_psnr_all.append(exp_psnr_val_all)
+        total_act_psnr_all.append(act_psnr_val_all)
+        total_resize_x2_psnr_all.append(resize_x2_psnr_val_all)
+        total_resize_x4_psnr_all.append(resize_x4_psnr_val_all)
+
+        # compute fg PSNR
+        exp_psnr_val_fg = PSNR(restored_img, gt_img, curr_mask)
+        act_psnr_val_fg = PSNR(curr_img, gt_img, curr_mask)
+        resize_x2_psnr_val_fg = PSNR(
+            cv2.resize(curr_img[::2, ::2, :], (img_width, img_height)), 
+            gt_img, 
+            curr_mask
+        )
+        resize_x4_psnr_val_fg = PSNR(
+            cv2.resize(curr_img[::4, ::4, :], (img_width, img_height)), 
+            gt_img, 
+            curr_mask
+        )
+        print(
+            "[Metric %d] FG PSNR: %f, %f, %f %f, fill pct: %f" % (
+                i, exp_psnr_val_fg, act_psnr_val_fg, resize_x2_psnr_val_fg, 
+                resize_x4_psnr_val_fg, fill_pct
+            )
+        )
+        log_file.write(
+            "[Metric %d] FG PSNR: %f, %f, %f %f, fill pct: %f\n" % (
+                i, exp_psnr_val_fg, act_psnr_val_fg, resize_x2_psnr_val_fg, 
+                resize_x4_psnr_val_fg, fill_pct
+            )
+        )
+
+        total_exp_psnr_fg.append(exp_psnr_val_fg)
+        total_act_psnr_fg.append(act_psnr_val_fg)
+        total_resize_x2_psnr_fg.append(resize_x2_psnr_val_fg)
+        total_resize_x4_psnr_fg.append(resize_x4_psnr_val_fg)
+        
+
+
         total_fill_pct.append(fill_pct)
+        if ref_num != i:
+            not_ref_fill_pct.append(fill_pct)
 
 
     print(
-        "[Final] PSNR: %f, %f, %f, %f, fill pct: %f" % (
-            np.mean(total_exp_psnr), 
-            np.mean(total_act_psnr), 
-            np.mean(total_resize_x2_psnr), 
-            np.mean(total_resize_x4_psnr),
-            np.mean(total_fill_pct)
+        "[Final] ALL PSNR: %f, %f, %f, %f, all fill pct: %f, not_ref_fill_pc: %f" % (
+            np.mean(total_exp_psnr_all), 
+            np.mean(total_act_psnr_all), 
+            np.mean(total_resize_x2_psnr_all), 
+            np.mean(total_resize_x4_psnr_all),
+            np.mean(total_fill_pct),
+            np.mean(not_ref_fill_pct)
         )
     )
+
+    print(
+        "[Final] FG PSNR: %f, %f, %f, %f, fill pct: %f, not_ref_fill_pc: %f" % (
+            np.mean(total_exp_psnr_fg), 
+            np.mean(total_act_psnr_fg), 
+            np.mean(total_resize_x2_psnr_fg), 
+            np.mean(total_resize_x4_psnr_fg),
+            np.mean(total_fill_pct),
+            np.mean(not_ref_fill_pct)
+        )
+    )
+
     log_file.write(
-        "[Final] PSNR: %f, %f, %f, %f, fill pct: %f\n" % (
-            np.mean(total_exp_psnr), 
-            np.mean(total_act_psnr), 
-            np.mean(total_resize_x2_psnr), 
-            np.mean(total_resize_x4_psnr),
-            np.mean(total_fill_pct)
+        "[Final] ALL PSNR: %f, %f, %f, %f, fill pct: %f, not_ref_fill_pc: %f\n" % (
+            np.mean(total_exp_psnr_all), 
+            np.mean(total_act_psnr_all), 
+            np.mean(total_resize_x2_psnr_all), 
+            np.mean(total_resize_x4_psnr_all),
+            np.mean(total_fill_pct),
+            np.mean(not_ref_fill_pct)
         )   
+    )
+
+    log_file.write(
+        "[Final] FG PSNR: %f, %f, %f, %f, fill pct: %f, not_ref_fill_pc: %f\n" % (
+            np.mean(total_exp_psnr_fg), 
+            np.mean(total_act_psnr_fg), 
+            np.mean(total_resize_x2_psnr_fg), 
+            np.mean(total_resize_x4_psnr_fg),
+            np.mean(total_fill_pct),
+            np.mean(not_ref_fill_pct)
+        )
     )
     writer.close()
     log_file.close()

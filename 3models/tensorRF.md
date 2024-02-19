@@ -47,3 +47,8 @@ add our dataset in ```opt.py``` by modifying line 29
  python3 train.py --config configs/metashape.txt
 
 ```
+
+### 4. render result:
+```bash
+python3 train.py --config configs/metashape_all.txt --ckpt log/tensorf_garden_all/tensorf_garden_all.th --render_only 1 --render_test 1
+```
