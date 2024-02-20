@@ -238,7 +238,7 @@ def option():
         "--method_name",
         type=str,
         default="method_name",
-        choices=["cicero_instant_ngp", "cicero_dgo", "cicero_tensorrf"],
+        choices=["temp_instant_ngp", "temp_dgo", "temp_tensorrf"],
         help="eg. Cicero + instant_igp, tensorrf...",
     )
 
@@ -297,9 +297,12 @@ def main():
             '-r': str(3),
         }
     )
-
+    prev_img = None
     for i, name_pose in tqdm(enumerate(meta_data["name_poses"]), total=total_cnt):
-        ref_num = find_reference_frame(i, skip_count, total_cnt)
+        if i % skip_count == 0:
+            ref_num = i
+        else:
+            ref_num = i-1
 
         name = name_pose["name"]
         pose = name_pose["transform"]
@@ -342,7 +345,11 @@ def main():
         ref_mask = np.load(ref_mask_fn)
         # add a channel
         ref_depth_map = ref_depth_map[:, :, np.newaxis]
-        ref_img = cv2.imread(ref_rgb_fn)
+
+        if i % skip_count == 0:
+            ref_img = cv2.imread(ref_rgb_fn)
+        else:
+            ref_img = prev_img
 
         # load ground truth image
         gt_img = cv2.imread(gt_rgb_fn)
@@ -402,6 +409,8 @@ def main():
         diff = np.abs(restored_img.astype(np.float32) - gt_img.astype(np.float32)).astype(np.uint8)
         comb = np.hstack((restored_img, gt_img, diff))
 
+        prev_img = copy.deepcopy(restored_img)
+
         # visualize result
         if args.visualize:
             cv2.imshow("restored", comb)
@@ -447,7 +456,6 @@ def main():
         total_act_psnr_all.append(act_psnr_val_all)
         total_resize_x2_psnr_all.append(resize_x2_psnr_val_all)
         total_resize_x4_psnr_all.append(resize_x4_psnr_val_all)
-        total_resize_2x4_psnr_all.append(resize_2x4_psnr_val_all)
 
         # compute fg PSNR
         exp_psnr_val_fg = PSNR(restored_img, gt_img, curr_mask)
@@ -484,7 +492,6 @@ def main():
         total_act_psnr_fg.append(act_psnr_val_fg)
         total_resize_x2_psnr_fg.append(resize_x2_psnr_val_fg)
         total_resize_x4_psnr_fg.append(resize_x4_psnr_val_fg)
-        total_resize_2x4_psnr_fg.append(resize_2x4_psnr_val_fg)
         
 
 
@@ -511,7 +518,7 @@ def main():
             np.mean(total_act_psnr_fg), 
             np.mean(total_resize_x2_psnr_fg), 
             np.mean(total_resize_x4_psnr_fg),
-            np.mean(total_resize_2x4_psnr_fg),
+            np.mean(total_resize_2x4_psnr_all),
             np.mean(total_fill_pct),
             np.mean(not_ref_fill_pct)
         )
