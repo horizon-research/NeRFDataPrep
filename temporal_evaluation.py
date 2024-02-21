@@ -308,15 +308,18 @@ def main():
         pose = name_pose["transform"]
         curr_depth_fn = args.depth_and_mask_folder + "/" + name + "_depth_fp32.npy"
         curr_mask_fn = args.depth_and_mask_folder + "/" + name + "_mask_uint8.npy"
-        if args.method_name == "cicero_instant_ngp":
+        # import ipdb; ipdb.set_trace()
+        if args.method_name == "temp_instant_ngp":
             curr_rgb_fn = args.nerf_results_folder + "/" + name + ".png"
         else:
             formatted_string = "{:03d}".format(i)
             curr_rgb_fn = args.nerf_results_folder + "/" + formatted_string + ".png"
 
+
+
         ref_depth_fn = args.depth_and_mask_folder + "/" + meta_data["name_poses"][ref_num]["name"] + "_depth_fp32.npy"
         ref_mask_fn = args.depth_and_mask_folder + "/" + meta_data["name_poses"][ref_num]["name"] + "_mask_uint8.npy"
-        if args.method_name == "cicero_instant_ngp":
+        if args.method_name == "temp_instant_ngp":
             ref_rgb_fn = args.nerf_results_folder + "/" + meta_data["name_poses"][ref_num]["name"] + ".png"
         else:
             formatted_string = "{:03d}".format(ref_num)

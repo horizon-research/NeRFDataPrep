@@ -39,7 +39,12 @@ def depth_and_mask_from_mesh(parsed_meta_path, mesh_path, output_folder, downsam
     renderer = pyrender.OffscreenRenderer(intrinsics["width"], intrinsics["height"])
 
     # use tqdm to show progress
-    for name_pose in tqdm(name_poses):
+    for i, name_pose in tqdm(enumerate(name_poses), total=len(name_poses), desc="Rendering"):
+        # print(name_pose["name"])
+        # print(name_pose["transform"])
+        # print(i)
+        # if i > 10:
+        #     break
         name = name_pose["name"]
         pose = name_pose["transform"]
         camera_node.matrix = pose

@@ -198,11 +198,11 @@ For details about how to integrate and tune the parameters, see Readmes in [3mod
 ### Split 1: Training set for training, validation set for evaluation.
 - PSNR 
 
-    | method \ dataset | 360-Garden | 360-bonsai | Tanks&Temple-Ignatius |
+    | method \ dataset | 360-Garden | 360-bonsai | Tanks&Temple-Ignatius | Tanks&Temple-Ignatius-long |
     |----------|----------|----------|----------|
-    | Instant NGP | **32.54** | **32.05** | 27.83 |
-    | DirectVoxGo   | 30.20 | 27.56  | 27.82 |
-    | Tensor RF   | 31.82 |  30.48 | **28.44** |
+    | Instant NGP | **32.54** | **32.05** | 27.83 | 27.82
+    | DirectVoxGo   | 30.20 | 27.56  | 27.82 | 28.944
+    | Tensor RF   | 31.82 |  30.48 | **28.44** | 29.53
 
 
 ### Split 2: Use all train+val set for training and evaluation.
@@ -211,7 +211,7 @@ For details about how to integrate and tune the parameters, see Readmes in [3mod
     | method \ dataset | 360-Garden | 360-bonsai | Tanks&Temple-Ignatius |
     |----------|----------|----------|----------|
     | Instant NGP | **33.52** | **32.46**  | 29.39 |
-    | DirectVoxGo   | 31.69 | 28.87  | 30.53 |
+    | DirectVoxGo   | 31.69 | 28.87  | 30.53 | 
     | Tensor RF   | 32.82 | 31.99 |  **31.07** |
 
 

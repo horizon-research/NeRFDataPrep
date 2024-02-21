@@ -2,6 +2,14 @@ import cv2
 import numpy as np
 import os
 from tqdm import tqdm  # Import tqdm
+import re
+
+def extract_number(filename):
+    # Using regular expression to find the first sequence of digits in the filename
+    match = re.search(r'\d+', filename)
+    if match:
+        return int(match.group())
+    return 0  # Return 0 if no digits are found
 
 def overlap_depth_mask_on_rgb(depth_masks_folder, rgb_folder, output_folder, alpha=0.5):
     rgb_files = []
@@ -17,14 +25,18 @@ def overlap_depth_mask_on_rgb(depth_masks_folder, rgb_folder, output_folder, alp
             mask_files.append(file)
         
     
-    rgb_files.sort()
-    depth_files.sort()
-    mask_files.sort()
+    # pad the rgb name before sort
+    # for i in range(len(rgb_files)):
+    #     rgb_files[i] = rgb_files[i].zfill(10)
+
+    rgb_files.sort(key=extract_number)
+    depth_files.sort(key=extract_number)
+    mask_files.sort(key=extract_number)
 
     # check number of files
-    if len(rgb_files) != len(depth_files) or len(rgb_files) != len(mask_files):
-        print("Number of files in the folders do not match. Exiting.")
-        return
+    # if len(rgb_files) != len(depth_files) or len(rgb_files) != len(mask_files):
+    #     print("Number of files in the folders do not match. Exiting.")
+    #     return
     
     for rgb_file, depth_file, mask_file in tqdm(zip(rgb_files, depth_files, mask_files), total=len(rgb_files), desc="Processing"):
         # scale the depth image from 0-1 to 0-255

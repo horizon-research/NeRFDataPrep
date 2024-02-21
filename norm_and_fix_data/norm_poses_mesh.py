@@ -125,7 +125,7 @@ if __name__ == "__main__":
     arrow_mesh = trimesh.creation.axis(origin_size=0.02, axis_radius=0.002, axis_length=0.1)
     mesh = pyrender.Mesh.from_trimesh(arrow_mesh, smooth=False)
     names_poses = norm_meta["name_poses"]
-    for name_pose in names_poses:
+    for i, name_pose in enumerate(names_poses):
         pose = name_pose["transform"]
         node = pyrender.Node(mesh=mesh, matrix=pose)
         scene.add_node(node)

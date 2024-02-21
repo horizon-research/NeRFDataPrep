@@ -3,6 +3,13 @@ import numpy as np
 import os
 from tqdm import tqdm  # Import tqdm
 import random
+import re
+def extract_number(filename):
+    # Using regular expression to find the first sequence of digits in the filename
+    match = re.search(r'\d+', filename)
+    if match:
+        return int(match.group())
+    return 0  # Return 0 if no digits are found
 
 def mask_rgb_img(depth_masks_folder, rgb_folder, output_folder):
     rgb_files = []
@@ -19,8 +26,8 @@ def mask_rgb_img(depth_masks_folder, rgb_folder, output_folder):
         print("Number of files in the folders do not match. Exiting.")
         return
     
-    rgb_files.sort()
-    mask_files.sort()
+    rgb_files.sort(key=extract_number)
+    mask_files.sort(key=extract_number)
     
     for rgb_file, mask_file in tqdm(zip(rgb_files, mask_files), total=len(rgb_files), desc="Processing"):
         # scale the mask image from 0-1 to 0-255
