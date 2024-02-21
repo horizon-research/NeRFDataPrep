@@ -1,5 +1,5 @@
-export scene=garden
-export dsf=4
+export scene=ignatius
+export dsf=2
 # gardne with cicero_tensorrf 6
 python3 warping_evaluation_thresh.py --nerf_results_folder ./3models/models/TensoRF/log/tensorf_"$scene"_all/imgs_test_all \
     --gt_folder "$scene"/images_"$dsf" --depth_and_mask_folder "$scene"/depths_masks_"$dsf" \
