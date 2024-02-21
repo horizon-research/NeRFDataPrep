@@ -202,7 +202,7 @@ For details about how to integrate and tune the parameters, see Readmes in [3mod
     |----------|----------|----------|----------|
     | Instant NGP | **32.54** | **32.05** | 27.83 | 27.82
     | DirectVoxGo   | 30.20 | 27.56  | 27.82 | 28.944
-    | Tensor RF   | 31.82 |  30.48 | **28.44** | 29.53
+    | Tensor RF   | 31.82 |  30.48 | **28.44** | **29.53**
 
 
 ### Split 2: Use all train+val set for training and evaluation.
